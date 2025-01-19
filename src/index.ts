@@ -15,6 +15,10 @@ app.use(express.json());
 app.use("/superadmin", superAdminRouter);
 app.use("/admin", adminRouter)
 app.use("/properties", propertyRouter)
+
+app.get("/", (req, res) => {
+  res.status(200).json("I am Working");
+})
 // app.use("/users", userRouter);
 
 dotenv.config(); // Load environment variables
