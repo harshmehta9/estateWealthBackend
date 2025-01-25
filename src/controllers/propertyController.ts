@@ -3,13 +3,10 @@ import Property from '../models/property';
 
 export const getAllProperties = async (req: Request, res: Response): Promise<any> => {
     try {
-        const properties = await Property.find({}, {
-            name: 1,
-            images: 1,
-            location: 1,
-            priceRange: 1,
-            possession: 1,
-            configurations: 1
+        const properties = await Property.find({},{
+            basicInfo: 1,
+            configuration: 1,
+            propertyImages: 1
         });
 
         return res.status(200).json({

@@ -44,72 +44,86 @@ export const loginAdmin = async (req: Request, res: Response): Promise<any> => {
 
 // Create a new property
 export const createProperty = async (req: Request, res: Response): Promise<any> => {
-    console.log("I am creating");
-    try {
-        const propertyData = (req.body.data);
-        if (!req.files) {
-            return res.status(400).json({ message: 'No files were uploaded' });
-        }
-        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+  try {
+    if (!req.body.data) return res.status(400).json({ message: 'Missing form data' });
+    if (!req.files) return res.status(400).json({ message: 'No files were uploaded' });
 
-        // Upload property images
-        const propertyImages = await Promise.all(
-            files.propertyImages?.map(file => uploadToCloudinary(file, 'properties')) || []
-        );
+    const propertyData = JSON.parse(req.body.data);
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
-        // Upload unit plan layouts
-        const unitPlanLayoutsImage = await Promise.all(
-            files.unitPlanLayoutsImage?.map(file => uploadToCloudinary(file, 'unitPlans')) || []
-        );
-
-        // Upload floor layouts
-        const floorLayoutsImage = await Promise.all(
-            files.floorLayoutsImage?.map(file => uploadToCloudinary(file, 'floorLayouts')) || []
-        );
-
-        // Upload project layouts
-        const projectLayoutsImage = await Promise.all(
-            files.projectLayoutsImage?.map(file => uploadToCloudinary(file, 'projectLayouts')) || []
-        );
-
-        // Upload offer images
-        const offerImages = await Promise.all(
-            files.offerImages?.map(file => uploadToCloudinary(file, 'offers')) || []
-        );
-
-        // Upload amenity images
-        const amenityImages = await Promise.all(
-            files.amenityImages?.map(file => uploadToCloudinary(file, 'amenities')) || []
-        );
-
-        // Upload specification images
-        const specificationImages = await Promise.all(
-            files.specificationImages?.map(file => uploadToCloudinary(file, 'specifications')) || []
-        );
-
-        // Create new property with all image URLs
-        const newProperty = new Property({
-            ...propertyData,
-            propertyImages,
-            'mediaAndPlans.unitPlanLayoutsImage': unitPlanLayoutsImage,
-            'mediaAndPlans.floorLayoutsImage': floorLayoutsImage,
-            'mediaAndPlans.projectLayoutsImage': projectLayoutsImage,
-            'paymentAndOffers.offerImages': offerImages,
-            'amenities.amenityImages': amenityImages,
-            'specifications.specificationImages': specificationImages
-        });
-
-        await newProperty.save();
-
-        return res.status(201).json({
-            message: 'Property created successfully',
-            property: newProperty
-        });
-    } catch (error) {
-        console.error('Error creating property:', error);
-        return res.status(500).json({ message: 'Server error' });
+    // Validate required files
+    const requiredFiles = [
+      'propertyImages', 
+      'unitPlanLayoutsImage',
+      'floorLayoutsImage',
+      'projectLayoutsImage'
+    ];
+    
+    for (const field of requiredFiles) {
+      if (!files[field]?.length) {
+        return res.status(400).json({ message: `${field} are required` });
+      }
     }
+
+    // Upload all files in parallel
+    const [
+      propertyImages,
+      unitPlanLayoutsImage,
+      floorLayoutsImage,
+      projectLayoutsImage,
+      offerImages = [],
+      amenityImages = [],
+      specificationImages = []
+    ] = await Promise.all([
+      uploadFiles(files.propertyImages, 'properties'),
+      uploadFiles(files.unitPlanLayoutsImage, 'unitPlans'),
+      uploadFiles(files.floorLayoutsImage, 'floorLayouts'),
+      uploadFiles(files.projectLayoutsImage, 'projectLayouts'),
+      uploadFiles(files.offerImages, 'offers'),
+      uploadFiles(files.amenityImages, 'amenities'),
+      uploadFiles(files.specificationImages, 'specifications')
+    ]);
+
+    // Create new property with nested structure
+    const newProperty = new Property({
+      ...propertyData,
+      propertyImages,
+      mediaAndPlans: {
+        ...propertyData.mediaAndPlans,
+        unitPlanLayoutsImage,
+        floorLayoutsImage,
+        projectLayoutsImage
+      },
+      paymentAndOffers: {
+        ...propertyData.paymentAndOffers,
+        offerImages
+      },
+      amenities: {
+        ...propertyData.amenities,
+        amenityImages
+      },
+      specifications: {
+        ...propertyData.specifications,
+        specificationImages
+      }
+    });
+
+    await newProperty.save();
+
+    return res.status(201).json({
+      message: 'Property created successfully',
+      property: newProperty
+    });
+  } catch (error) {
+    console.error('Error creating property:', error);
+    return res.status(500).json({ message: 'Server error' });
+  }
 };
+
+// Helper function for file uploads
+async function uploadFiles(files: Express.Multer.File[] | undefined, folder: string) {
+  return files?.length ? Promise.all(files.map(file => uploadToCloudinary(file, folder))) : [];
+}
 
 // Edit an existing property
 export const editProperty = async (req: Request, res: Response): Promise<any> => {

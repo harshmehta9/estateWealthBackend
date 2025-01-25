@@ -2,8 +2,8 @@ import mongoose from 'mongoose';
 
 // Enums
 enum PriceUnit {
-  Lakh = 'Lakh',
-  Crore = 'Crore'
+  Lakh = 'Lac',
+  Crore = 'Cr'
 }
 
 // Interfaces
@@ -17,15 +17,25 @@ interface PriceConfig {
   unit: PriceUnit;
 }
 
-interface PropertyConfiguration {
+interface ConfigurationItem {
   bhkType?: string;
   area: AreaConfig;
   price: PriceConfig;
   bookingAmount: PriceConfig;
   parking?: string;
+}
+
+interface PropertyConfiguration {
+  configurations: ConfigurationItem[];
   googleMapLink?: string;
-  aboutProperty:string;
+  aboutProperty: string;
   aboutBuilder: string;
+}
+
+interface BasicInfo {
+  propertyName: string;
+  propertyAddress: string;
+  locality: string;
 }
 
 interface PropertyDetails {
@@ -40,12 +50,12 @@ interface PossessionDetails {
     reraDate?: Date;
     reraImages: string[];
     reraLink?: string;
-  }
+  };
 }
 
 interface ProsAndCons {
-  pros?: string;
-  cons?: string;
+  pros?: string[];
+  cons?: string[];
 }
 
 interface Amenities {
@@ -72,6 +82,7 @@ interface Specifications {
 
 // Full Property Interface
 interface IProperty extends mongoose.Document {
+  basicInfo: BasicInfo;
   configuration: PropertyConfiguration;
   propertyImages: string[];
   propertyDetails: PropertyDetails;
@@ -88,32 +99,39 @@ interface IProperty extends mongoose.Document {
 
 // Mongoose Schema
 const PropertySchema = new mongoose.Schema<IProperty>({
+  basicInfo: {
+    propertyName: String,
+    propertyAddress: String,
+    locality: String
+  },
   configuration: {
-    bhkType: String,
-    area: {
-      value: Number,
-      unit: {
-        type: String,
-        default: 'sq ft'
-      }
-    },
-    price: {
-      value: Number,
-      unit: {
-        type: String,
-        enum: Object.values(PriceUnit)
-      }
-    },
-    bookingAmount: {
-      value: Number,
-      unit: {
-        type: String,
-        enum: Object.values(PriceUnit)
-      }
-    },
-    parking: String,
+    configurations: [{
+      bhkType: String,
+      area: {
+        value: Number,
+        unit: {
+          type: String,
+          default: 'sq ft'
+        }
+      },
+      price: {
+        value: Number,
+        unit: {
+          type: String,
+          enum: ['Cr', 'Lac']
+        }
+      },
+      bookingAmount: {
+        value: Number,
+        unit: {
+          type: String,
+          enum: ['Cr', 'Lac']
+        }
+      },
+      parking: String
+    }],
     googleMapLink: String,
-    aboutProperty:String,
+    aboutProperty: String,
     aboutBuilder: String
   },
   propertyImages: [String],
