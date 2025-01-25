@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Admin } from '../models/user'; // Make sure to replace with the correct path to your Admin model
-import Property, { IProperty } from '../models/property'; // Make sure to replace with the correct path to your Property model
+import Property  from '../models/property';
 import bcrypt from 'bcryptjs';
 import { uploadToCloudinary } from '../utils/cloudinary';
 import jwt from 'jsonwebtoken';
@@ -44,46 +44,71 @@ export const loginAdmin = async (req: Request, res: Response): Promise<any> => {
 
 // Create a new property
 export const createProperty = async (req: Request, res: Response): Promise<any> => {
+    console.log("I am creating");
     try {
-        const propertyData = JSON.parse(req.body.data);
+        const propertyData = (req.body.data);
+        if (!req.files) {
+            return res.status(400).json({ message: 'No files were uploaded' });
+        }
         const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-    
-        // Upload multiple property images
-        const imageUrls = await Promise.all(
-          files.images?.map(file => uploadToCloudinary(file, 'properties')) || []
+
+        // Upload property images
+        const propertyImages = await Promise.all(
+            files.propertyImages?.map(file => uploadToCloudinary(file, 'properties')) || []
         );
-    
-        // Upload master plan image
-        let masterPlanImageUrl = '';
-        if (files.masterPlanImage?.[0]) {
-          masterPlanImageUrl = await uploadToCloudinary(files.masterPlanImage[0], 'masterplans');
-        }
-    
-        // Upload floor plan image
-        let floorPlanImageUrl = '';
-        if (files.floorPlanImage?.[0]) {
-          floorPlanImageUrl = await uploadToCloudinary(files.floorPlanImage[0], 'floorplans');
-        }
-        
-        
-        // Create new property with image URLs
+
+        // Upload unit plan layouts
+        const unitPlanLayoutsImage = await Promise.all(
+            files.unitPlanLayoutsImage?.map(file => uploadToCloudinary(file, 'unitPlans')) || []
+        );
+
+        // Upload floor layouts
+        const floorLayoutsImage = await Promise.all(
+            files.floorLayoutsImage?.map(file => uploadToCloudinary(file, 'floorLayouts')) || []
+        );
+
+        // Upload project layouts
+        const projectLayoutsImage = await Promise.all(
+            files.projectLayoutsImage?.map(file => uploadToCloudinary(file, 'projectLayouts')) || []
+        );
+
+        // Upload offer images
+        const offerImages = await Promise.all(
+            files.offerImages?.map(file => uploadToCloudinary(file, 'offers')) || []
+        );
+
+        // Upload amenity images
+        const amenityImages = await Promise.all(
+            files.amenityImages?.map(file => uploadToCloudinary(file, 'amenities')) || []
+        );
+
+        // Upload specification images
+        const specificationImages = await Promise.all(
+            files.specificationImages?.map(file => uploadToCloudinary(file, 'specifications')) || []
+        );
+
+        // Create new property with all image URLs
         const newProperty = new Property({
-          ...propertyData,
-          images: imageUrls,
-          masterPlanImage: masterPlanImageUrl,
-          floorPlanImage: floorPlanImageUrl
+            ...propertyData,
+            propertyImages,
+            'mediaAndPlans.unitPlanLayoutsImage': unitPlanLayoutsImage,
+            'mediaAndPlans.floorLayoutsImage': floorLayoutsImage,
+            'mediaAndPlans.projectLayoutsImage': projectLayoutsImage,
+            'paymentAndOffers.offerImages': offerImages,
+            'amenities.amenityImages': amenityImages,
+            'specifications.specificationImages': specificationImages
         });
-    
+
         await newProperty.save();
-    
+
         return res.status(201).json({
-          message: 'Property created successfully',
-          property: newProperty
+            message: 'Property created successfully',
+            property: newProperty
         });
-      } catch (error) {
+    } catch (error) {
         console.error('Error creating property:', error);
         return res.status(500).json({ message: 'Server error' });
-      }
+    }
 };
 
 // Edit an existing property

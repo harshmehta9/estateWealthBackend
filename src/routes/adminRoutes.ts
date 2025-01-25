@@ -8,9 +8,13 @@ const router = Router();
 
 router.post('/login', loginAdmin);
 router.post('/createproperty', upload.fields([
-    { name: 'images', maxCount: 10 },
-    { name: 'masterPlanImage', maxCount: 1 },
-    { name: 'floorPlanImage', maxCount: 1 }
+    { name: 'propertyImages', maxCount: 10 },
+    { name: 'unitPlanLayoutsImage', maxCount: 10 },
+    { name: 'floorLayoutsImage', maxCount: 10 },
+    { name: 'projectLayoutsImage', maxCount: 10},
+    { name: 'offerImages', maxCount: 10},
+    { name: 'amenityImages', maxCount: 10},
+    { name: 'specificationImages', maxCount: 10}
   ]), createProperty);
 router.put('/editproperty/:id', editProperty);
 router.delete("/deleteproperty/:id", deleteProperty)

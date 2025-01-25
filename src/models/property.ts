@@ -1,80 +1,163 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose from 'mongoose';
 
-export interface IProperty extends Document {
-  name: string;
-  priceRange: { bhk: string; price: number }[];
-  location: { address: string; googleMapLink?: string, locality?: string };
-  images: string[];
-  landParcel: number;
-  towers: number;
-  configurations: { bhk: string; carpetArea: number }[];
-  reraNumbers: string[];
-  possession: { target: string; reraPossession?: string };
-  about: string;
-  prosAndCons: { pros: string[]; cons: string[] };
-  videoLink?: string;
-  internalAmenities: string[];
-  externalAmenities: string[];
-  masterPlanImage?: string;
-  floorPlanImage?: string;
-  pricingDetails: {
-    carpetArea: number;
-    totalPrice: number;
-    downPayment: number;
-    parking: number;
-    unitPlanImage: string;
-  }[];
-  paymentScheme?: string;
-  offer?: string;
-  faqs: { question: string; answer: string }[];
+// Enums
+enum PriceUnit {
+  Lakh = 'Lakh',
+  Crore = 'Crore'
 }
 
-const propertySchema: Schema = new mongoose.Schema({
-  name: { type: String, required: true },
-  priceRange: [
-    { bhk: { type: String, required: true }, price: { type: Number, required: true } }
-  ],
-  location: {
-    address: { type: String, required: true },
-    googleMapLink: { type: String },
-    locality: { type: String }
+// Interfaces
+interface AreaConfig {
+  value: number;
+  unit?: string;
+}
+
+interface PriceConfig {
+  value: number;
+  unit: PriceUnit;
+}
+
+interface PropertyConfiguration {
+  bhkType?: string;
+  area: AreaConfig;
+  price: PriceConfig;
+  bookingAmount: PriceConfig;
+  parking?: string;
+  googleMapLink?: string;
+  aboutProperty:string;
+  aboutBuilder: string;
+}
+
+interface PropertyDetails {
+  landParcel: AreaConfig;
+  totalTowers?: number;
+  buildingStructures?: string;
+  availableTowers?: number;
+}
+
+interface PossessionDetails {
+  [reraNumber: string]: {
+    reraDate?: Date;
+    reraImages: string[];
+    reraLink?: string;
+  }
+}
+
+interface ProsAndCons {
+  pros?: string;
+  cons?: string;
+}
+
+interface Amenities {
+  indoor: string[];
+  outdoor: string[];
+  amenityImages: string[];
+}
+
+interface MediaAndPlans {
+  videoLinks: string[];
+  projectLayouts: string[];
+  floorLayouts: string[];
+  unitPlanLayouts: string[];
+}
+
+interface PaymentAndOffers {
+  offerText?: string;
+  offerImages: string[];
+}
+
+interface Specifications {
+  specificationImages: string[];
+}
+
+// Full Property Interface
+interface IProperty extends mongoose.Document {
+  configuration: PropertyConfiguration;
+  propertyImages: string[];
+  propertyDetails: PropertyDetails;
+  possession: PossessionDetails;
+  prosAndCons: ProsAndCons;
+  amenities: Amenities;
+  mediaAndPlans: MediaAndPlans;
+  location?: string;
+  paymentAndOffers: PaymentAndOffers;
+  specifications: Specifications;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Mongoose Schema
+const PropertySchema = new mongoose.Schema<IProperty>({
+  configuration: {
+    bhkType: String,
+    area: {
+      value: Number,
+      unit: {
+        type: String,
+        default: 'sq ft'
+      }
+    },
+    price: {
+      value: Number,
+      unit: {
+        type: String,
+        enum: Object.values(PriceUnit)
+      }
+    },
+    bookingAmount: {
+      value: Number,
+      unit: {
+        type: String,
+        enum: Object.values(PriceUnit)
+      }
+    },
+    parking: String,
+    googleMapLink: String,
+    aboutProperty:String,
+    aboutBuilder: String
   },
-  images: { type: [String], default: [] },
-  landParcel: { type: Number },
-  towers: { type: Number },
-  configurations: [
-    { bhk: { type: String }, carpetArea: { type: Number } }
-  ],
-  reraNumbers: { type: [String], default: [] },
-  possession: {
-    target: { type: String, required: true },
-    reraPossession: { type: String }
+  propertyImages: [String],
+  propertyDetails: {
+    landParcel: {
+      value: Number,
+      unit: {
+        type: String,
+        default: 'Acres'
+      }
+    },
+    totalTowers: Number,
+    buildingStructures: String,
+    availableTowers: Number
   },
-  about: { type: String },
+  possession: mongoose.Schema.Types.Mixed,
   prosAndCons: {
-    pros: { type: [String], default: [] },
-    cons: { type: [String], default: [] }
+    pros: [String],
+    cons: [String]
   },
-  videoLink: { type: String },
-  internalAmenities: { type: [String], default: [] },
-  externalAmenities: { type: [String], default: [] },
-  masterPlanImage: { type: String },
-  floorPlanImage: { type: String },
-  pricingDetails: [
-    {
-      carpetArea: { type: Number },
-      totalPrice: { type: Number },
-      downPayment: { type: Number },
-      parking: { type: Number },
-      unitPlanImage: { type: String }
-    }
-  ],
-  paymentScheme: { type: String },
-  offer: { type: String },
-  faqs: [
-    { question: { type: String }, answer: { type: String } }
-  ]
-}, { timestamps: true });
+  amenities: {
+    indoor: [String],
+    outdoor: [String],
+    amenityImages: [String]
+  },
+  mediaAndPlans: {
+    videoLinks: [String],
+    projectLayoutsImage: [String],
+    floorLayoutsImage: [String],
+    unitPlanLayoutsImage: [String]
+  },
+  location: String,
+  paymentAndOffers: {
+    offerText: String,
+    offerImages: [String]
+  },
+  specifications: {
+    specificationImages: [String]
+  }
+}, {
+  timestamps: true
+});
 
+// Create the model
+const Property = mongoose.model<IProperty>('Property', PropertySchema);
 
-export default mongoose.model<IProperty>('Property', propertySchema);
+export default Property;
